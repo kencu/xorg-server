@@ -439,16 +439,6 @@ QuartzModeBundleInit(void);
     }
 }
 
-- (void) set_window_menu:(NSArray *)list
-{
-    [_controller set_window_menu:list];
-}
-
-- (void) set_window_menu_check:(NSNumber *)n
-{
-    [_controller set_window_menu_check:n];
-}
-
 - (void) set_apps_menu:(NSArray *)list
 {
     [_controller set_apps_menu:list];
@@ -460,16 +450,6 @@ QuartzModeBundleInit(void);
 
     if ([self modalWindow] == nil)
         [self activateX:YES];
-}
-
-- (void) set_can_quit:(NSNumber *)state
-{
-    [_controller set_can_quit:[state boolValue]];
-}
-
-- (void) server_ready:unused
-{
-    [_controller server_ready];
 }
 
 - (void) show_hide_menubar:(NSNumber *)state
@@ -927,7 +907,7 @@ X11ApplicationSetWindowMenu(int nitems, const char **items,
         }
 
         dispatch_async(dispatch_get_main_queue(), ^{
-            [X11App set_window_menu:allMenuItems];
+            [X11App.controller set_window_menu:allMenuItems];
         });
     }
 }
@@ -936,7 +916,7 @@ void
 X11ApplicationSetWindowMenuCheck(int idx)
 {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [X11App set_window_menu_check:@(idx)];
+        [X11App.controller set_window_menu_check:@(idx)];
     });
 }
 
@@ -952,7 +932,7 @@ void
 X11ApplicationSetCanQuit(int state)
 {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [X11App set_can_quit:@(state)];
+        [X11App.controller set_can_quit:!!state];
     });
 }
 
@@ -960,7 +940,7 @@ void
 X11ApplicationServerReady(void)
 {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [X11App server_ready:nil];
+        [X11App.controller server_ready];
     });
 }
 
