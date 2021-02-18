@@ -111,6 +111,10 @@ CFStringRef app_prefs_domain_cfstr = NULL;
 - (void) sendX11NSEvent:(NSEvent *)e;
 @end
 
+@interface X11Application ()
+@property (nonatomic, readwrite, assign) OSX_BOOL x_active;
+@end
+
 @implementation X11Application
 
 typedef struct message_struct message;
@@ -125,15 +129,9 @@ struct message_struct {
 Bool
 QuartzModeBundleInit(void);
 
-- (void) set_controller:obj
-{
-    if (_controller == nil) _controller = [obj retain];
-}
-
 - (void) dealloc
 {
-    if (_controller != nil) [_controller release];
-
+    self.controller = nil;
     [super dealloc];
 }
 
@@ -163,10 +161,12 @@ QuartzModeBundleInit(void);
 
 - (void) activateX:(OSX_BOOL)state
 {
-    if (_x_active == state)
+    OSX_BOOL const x_active = self.x_active;
+
+    if (x_active == state)
         return;
 
-    DEBUG_LOG("state=%d, _x_active=%d, \n", state, _x_active);
+    DEBUG_LOG("state=%d, x_active=%d, \n", state, x_active);
     if (state) {
         if (bgMouseLocationUpdated) {
             DarwinSendPointerEvents(darwinPointer, MotionNotify, 0,
@@ -190,7 +190,7 @@ QuartzModeBundleInit(void);
         DarwinSendDDXEvent(kXquartzDeactivate, 0);
     }
 
-    _x_active = state;
+    self.x_active = state;
 }
 
 - (void) became_key:(NSWindow *)win
@@ -201,6 +201,7 @@ QuartzModeBundleInit(void);
 - (void) sendEvent:(NSEvent *)e
 {
     OSX_BOOL for_appkit, for_x;
+    OSX_BOOL const x_active = self.x_active;
 
     /* By default pass down the responder chain and to X. */
     for_appkit = YES;
@@ -216,13 +217,13 @@ QuartzModeBundleInit(void);
         if ([e window] != nil) {
             /* Pointer event has an (AppKit) window. Probably something for the kit. */
             for_x = NO;
-            if (_x_active) [self activateX:NO];
+            if (x_active) [self activateX:NO];
         }
         else if ([self modalWindow] == nil) {
             /* Must be an X window. Tell appkit windows to resign main/key */
             for_appkit = NO;
 
-            if (!_x_active && quartzProcs->IsX11Window([e windowNumber])) {
+            if (!x_active && quartzProcs->IsX11Window([e windowNumber])) {
                 if ([self respondsToSelector:@selector(_setKeyWindow:)] && [self respondsToSelector:@selector(_setMainWindow:)]) {
                     NSWindow *keyWindow = [self keyWindow];
                     if (keyWindow) {
@@ -439,7 +440,7 @@ QuartzModeBundleInit(void);
 
 - (void) set_apps_menu:(NSArray *)list
 {
-    [_controller set_apps_menu:list];
+    [self.controller set_apps_menu:list];
 }
 
 - (void) set_front_process:unused
@@ -462,7 +463,7 @@ QuartzModeBundleInit(void);
 
 - (void) launch_client:(NSString *)cmd
 {
-    (void)[_controller application:self openFile:cmd];
+    (void)[self.controller application:self openFile:cmd];
 }
 
 /* user preferences */
@@ -870,16 +871,6 @@ cfarray_to_nsarray(CFArrayRef in)
 {
     DarwinSendDDXEvent(kXquartzPasteboardNotify, 1,
                        AppleWMCopyToPasteboard);
-}
-
-- (X11Controller *) controller
-{
-    return _controller;
-}
-
-- (OSX_BOOL) x_active
-{
-    return _x_active;
 }
 
 @end
